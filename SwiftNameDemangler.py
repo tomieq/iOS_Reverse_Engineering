@@ -42,7 +42,7 @@ def clean_demangled_name(name):
     name = name.replace("<", "_")
     name = name.replace(">", "_")
 
-    return name
+    return name.strip("'")
 
 def beautify_swift_program():
 
