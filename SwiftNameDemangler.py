@@ -32,17 +32,24 @@ def demangle_swift_name(mangled_name):
     # Return demangler output. If it's not a Swift type, it will just return original name
     return demangled
 
-def clean_demangled_name(name):
+def get_arguments(name):
+   tmp = name.split("(", 1)
+   if len(tmp) > 1:
+      return "(" + tmp[1]
+   return ""
 
+def clean_demangled_name(name):
     # Remove everything after the opening parenthesis (removes function arguments)
-    name = name.split("(")[0]
+    tmp = name.split("(", 1)[0]
+    parts = tmp.split(" ")
+    name = parts[-1].strip("'")
    
     # Replace spaces and other undesired characters
     name = name.replace(" ", "_")
     name = name.replace("<", "_")
     name = name.replace(">", "_")
 
-    return name.strip("'")
+    return name
 
 def beautify_swift_program():
 
@@ -51,12 +58,14 @@ def beautify_swift_program():
     for func in currentProgram.getFunctionManager().getFunctions(True):
         demangled_name = demangle_swift_name(func.getName())
         cleaned_name = clean_demangled_name(demangled_name)
+        
        
         if cleaned_name != func.getName():
-            print("Original: {}, New: {}".format(func.getName(), cleaned_name))
+            args = get_arguments(demangled_name)
+            print("Original: {}, New: {}{}".format(func.getName(), cleaned_name, args))
            
             # Set new function name and comment
-            func.setComment("Original: {}\nDemangled: {}".format(func.getName(), demangled_name))
+            func.setComment("Original: {}\nDemangled: {}\n{}{}".format(func.getName(), demangled_name, cleaned_name, args))
             func.setName(cleaned_name, ghidra.program.model.symbol.SourceType.USER_DEFINED)
 
     # Demangle labels if they are Swift types
@@ -67,11 +76,12 @@ def beautify_swift_program():
             cleaned_name = clean_demangled_name(demangled_name)
            
             if cleaned_name != symbol.getName():
-                print("Original: {}, New: {}".format(symbol.getName(), cleaned_name))
+                args = get_arguments(demangled_name)
+                print("Original: {}, New: {}{}".format(symbol.getName(), cleaned_name, args))
                
                 # Set new label name and comment
                 # Ghidra already also renames pointers to labels as well
-                currentProgram.getListing().setComment(symbol.getAddress(), ghidra.program.model.listing.CodeUnit.EOL_COMMENT, "Original: {}\nDemangled: {}".format(symbol.getName(), demangled_name))
+                currentProgram.getListing().setComment(symbol.getAddress(), ghidra.program.model.listing.CodeUnit.EOL_COMMENT, "Original: {}\nDemangled: {}\n{}{}".format(symbol.getName(), demangled_name, cleaned_name, args))
                 symbol.setName(cleaned_name, ghidra.program.model.symbol.SourceType.USER_DEFINED)
 
 beautify_swift_program()
